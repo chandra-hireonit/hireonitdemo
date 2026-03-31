@@ -14,6 +14,7 @@ export default function ThankYouPage() {
 
   useEffect(() => {
     const clientName = sessionStorage.getItem("clientName");
+    console.log(clientName);
 
     // Check if clientName is missing, null, or just an empty string
     if (!clientName || clientName.trim() === "") {
