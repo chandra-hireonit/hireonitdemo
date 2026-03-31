@@ -13,7 +13,7 @@ export default function ThankYouPage() {
   const [isValidClient, setIsValidClient] = useState(true);
 
   useEffect(() => {
-    const clientName = sessionStorage.getItem("var_client_name");
+    const clientName = sessionStorage.getItem("clientName");
 
     // Check if clientName is missing, null, or just an empty string
     if (!clientName || clientName.trim() === "") {
