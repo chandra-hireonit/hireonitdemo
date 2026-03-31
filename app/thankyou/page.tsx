@@ -24,7 +24,6 @@ export default function ThankYouPage() {
       if (clientName) {
         window.location.href = `https://${clientName}.ambitionhire.ai/candidate/dashboard`;
       } else {
-        window.location.href = `https://services.ambitionhire.ai/candidate/dashboard`;
         console.error("Client name not found in localStorage");
       }
     }, 5000);
