@@ -70,14 +70,7 @@ export default function Page() {
       // console.log("Message:", message);
     },
     onError: (error) => {
-      const details = {
-        message: (error as any)?.message || "Unknown ElevenLabs error",
-        code: (error as any)?.code || (error as any)?.status || "N/A",
-        response: (error as any)?.response || null,
-        raw: error,
-      };
-      console.error("ElevenLabs conversation error:", details);
-      setErrorMessage(`ElevenLabs error: ${details.message}`);
+      console.error("Error:", error);
       setAgentState("disconnected");
     },
   });
@@ -93,15 +86,8 @@ export default function Page() {
         onStatusChange: (status: any) => setAgentState(status.status),
       });
     } catch (error) {
-      const errDetails = {
-        message: (error as any)?.message || "Unknown startup error",
-        stack: (error as any)?.stack || "",
-        raw: error,
-      };
-      console.error("Error starting conversation:", errDetails);
-      setErrorMessage(`Failed to start voice session: ${errDetails.message}`);
+      console.error("Error starting conversation:", error);
       setAgentState("disconnected");
-
       if (error instanceof DOMException && error.name === "NotAllowedError") {
         setErrorMessage(
           "Please enable microphone permissions in your browser.",
