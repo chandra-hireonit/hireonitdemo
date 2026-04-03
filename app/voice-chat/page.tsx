@@ -23,7 +23,7 @@ const DEFAULT_AGENT = {
   description: "Tap to start a voice interview with Hire On It.",
 };
 
-export default function Page() {
+function VoiceChatContent() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [agentState, setAgentState] = useState<AgentState>("disconnected");
   const router = useRouter();
@@ -197,5 +197,13 @@ export default function Page() {
         </Button>
       </div>
     </Card>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <VoiceChatContent />
+    </Suspense>
   );
 }
