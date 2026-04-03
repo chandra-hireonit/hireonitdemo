@@ -2,7 +2,6 @@
 
 import { useCallback, useState } from "react";
 import { useConversation } from "@elevenlabs/react";
-import { useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { Loader2Icon, PhoneIcon, PhoneOffIcon } from "lucide-react";
 
@@ -13,8 +12,8 @@ import { Orb } from "@/components/ui/orb";
 import { ShimmeringText } from "@/components/ui/shimmering-text";
 
 const DEFAULT_AGENT = {
-  agentId: "agent_7401kn79mzyneh5bf5s0gzreb9kb",
-  name: "Hire On It",
+  agentId: process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID!,
+  name: "Customer Support",
   description: "Tap to start voice chat",
 };
 
@@ -28,22 +27,13 @@ type AgentState =
 export default function Page() {
   const [agentState, setAgentState] = useState<AgentState>("disconnected");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const searchParams = useSearchParams();
-  const agentId = searchParams.get("agent_id") || DEFAULT_AGENT.agentId;
 
   const conversation = useConversation({
     onConnect: () => console.log("Connected"),
     onDisconnect: () => console.log("Disconnected"),
     onMessage: (message) => console.log("Message:", message),
     onError: (error) => {
-      const details = {
-        message: (error as any)?.message || "Unknown ElevenLabs error",
-        code: (error as any)?.code || (error as any)?.status || "N/A",
-        response: (error as any)?.response || null,
-        raw: error,
-      };
-      console.error("ElevenLabs conversation error:", details);
-      setErrorMessage(`ElevenLabs error: ${details.message}`);
+      console.error("Error:", error);
       setAgentState("disconnected");
     },
   });
@@ -53,20 +43,13 @@ export default function Page() {
       setErrorMessage(null);
       await navigator.mediaDevices.getUserMedia({ audio: true });
       await conversation.startSession({
-        agentId,
+        agentId: DEFAULT_AGENT.agentId,
         connectionType: "webrtc",
         onStatusChange: (status) => setAgentState(status.status),
       });
     } catch (error) {
-      const errDetails = {
-        message: (error as any)?.message || "Unknown startup error",
-        stack: (error as any)?.stack || "",
-        raw: error,
-      };
-      console.error("Error starting conversation:", errDetails);
-      setErrorMessage(`Failed to start voice session: ${errDetails.message}`);
+      console.error("Error starting conversation:", error);
       setAgentState("disconnected");
-
       if (error instanceof DOMException && error.name === "NotAllowedError") {
         setErrorMessage(
           "Please enable microphone permissions in your browser.",
