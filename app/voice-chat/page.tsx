@@ -1,8 +1,7 @@
 "use client";
-
-import { useCallback, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useCallback, useState, useEffect, Suspense, useRef } from "react";
 import { useConversation } from "@elevenlabs/react";
-import { useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { Loader2Icon, PhoneIcon, PhoneOffIcon } from "lucide-react";
 
@@ -11,11 +10,12 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Orb } from "@/components/ui/orb";
 import { ShimmeringText } from "@/components/ui/shimmering-text";
+import { useSearchParams } from "next/navigation";
 
 const DEFAULT_AGENT = {
-  agentId: "agent_7401kn79mzyneh5bf5s0gzreb9kb",
-  name: "Hire On It",
-  description: "Tap to start voice chat",
+  agentId: "agent_01k03sadvvf8vakbhkfzws1yn5",
+  name: "Hire On It Interview Bot",
+  description: "Tap to start a voice interview with Hire On It.",
 };
 
 type AgentState =
@@ -28,13 +28,47 @@ type AgentState =
 export default function Page() {
   const [agentState, setAgentState] = useState<AgentState>("disconnected");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const searchParams = useSearchParams();
-  const agentId = searchParams.get("agent_id") || DEFAULT_AGENT.agentId;
+  const router = useRouter();
+
+  // search params are read inside a Suspense-wrapped client helper to satisfy
+  // Next.js expectations when using `useSearchParams` in the app router.
+  const [agentIdParam, setAgentIdParam] = useState<string | null>(null);
+  const paramsLoadedRef = useRef(false);
+
+  // log missing agent id after params have been assigned
+  useEffect(() => {
+    if (!paramsLoadedRef.current && agentIdParam) {
+      paramsLoadedRef.current = true;
+    }
+
+    if (paramsLoadedRef.current && !agentIdParam) {
+      console.log("Missing agent ID from params");
+    }
+  }, [agentIdParam]);
+
+  function SearchParamsSetter({
+    setAgentId,
+  }: {
+    setAgentId: (v: string | null) => void;
+  }) {
+    const searchParams = useSearchParams();
+    useEffect(() => {
+      setAgentId(searchParams.get("agent_id"));
+    }, [searchParams, setAgentId]);
+    return null;
+  }
 
   const conversation = useConversation({
-    onConnect: () => console.log("Connected"),
-    onDisconnect: () => console.log("Disconnected"),
-    onMessage: (message) => console.log("Message:", message),
+    onConnect: () => {
+      // console.log("Connected");
+    },
+    onDisconnect: () => {
+      // console.log("Disconnected");
+      router.push("/thankyou");
+    },
+    onMessage: (message) => {
+      // console.log("Message:", message);
+    },
     onError: (error) => {
       const details = {
         message: (error as any)?.message || "Unknown ElevenLabs error",
@@ -53,9 +87,10 @@ export default function Page() {
       setErrorMessage(null);
       await navigator.mediaDevices.getUserMedia({ audio: true });
       await conversation.startSession({
-        agentId,
+        agentId: agentIdParam || DEFAULT_AGENT.agentId,
+        dynamicVariables: {},
         connectionType: "webrtc",
-        onStatusChange: (status) => setAgentState(status.status),
+        onStatusChange: (status: any) => setAgentState(status.status),
       });
     } catch (error) {
       const errDetails = {
@@ -73,7 +108,7 @@ export default function Page() {
         );
       }
     }
-  }, [conversation]);
+  }, [conversation, agentIdParam]);
 
   const handleCall = useCallback(() => {
     if (agentState === "disconnected" || agentState === null) {
@@ -100,8 +135,11 @@ export default function Page() {
   }, [conversation]);
 
   return (
-    <Card className="flex h-[400px] w-full flex-col items-center justify-center overflow-hidden p-6">
+    <Card className="flex h-screen w-screen flex-col items-center justify-center overflow-hidden p-6 rounded-none border-0">
       <div className="flex flex-col items-center gap-6">
+        <Suspense fallback={null}>
+          <SearchParamsSetter setAgentId={setAgentIdParam} />
+        </Suspense>
         <div className="relative size-32">
           <div className="bg-muted relative h-full w-full rounded-full p-1 shadow-[inset_0_2px_8px_rgba(0,0,0,0.1)] dark:shadow-[inset_0_2px_8px_rgba(0,0,0,0.5)]">
             <div className="bg-background h-full w-full overflow-hidden rounded-full shadow-[inset_0_0_12px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_0_12px_rgba(0,0,0,0.3)]">
