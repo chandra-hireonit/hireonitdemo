@@ -1,5 +1,5 @@
 "use client";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useState, useEffect, Suspense, useRef } from "react";
 import { useConversation } from "@elevenlabs/react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -10,13 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Orb } from "@/components/ui/orb";
 import { ShimmeringText } from "@/components/ui/shimmering-text";
-import { useSearchParams } from "next/navigation";
-
-const DEFAULT_AGENT = {
-  agentId: "agent_01k03sadvvf8vakbhkfzws1yn5",
-  name: "Hire On It Interview Bot",
-  description: "Tap to start a voice interview with Hire On It.",
-};
 
 type AgentState =
   | "disconnected"
@@ -25,123 +18,40 @@ type AgentState =
   | "disconnecting"
   | null;
 
+const DEFAULT_AGENT = {
+  name: "Hire On It Interview Bot",
+  description: "Tap to start a voice interview with Hire On It.",
+};
+
 export default function Page() {
-  const [agentState, setAgentState] = useState<AgentState>("disconnected");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [agentState, setAgentState] = useState<AgentState>("disconnected");
   const router = useRouter();
+  const searchParams = useSearchParams();
 
-  // search params are read inside a Suspense-wrapped client helper to satisfy
-  // Next.js expectations when using `useSearchParams` in the app router.
-  const [agentIdParam, setAgentIdParam] = useState<string | null>(null);
-  const [interviewStatus, setInterviewStatus] = useState<
-    "Incomplete" | "In Progress" | "Complete" | null
-  >(null);
-  const PARAMS_KEY = "voice-chat-params";
-  const STATUS_KEY = "voice-chat-status";
-  const paramsLoadedRef = useRef(false);
-
-  // initialize interview status from sessionStorage on the client only
-  useEffect(() => {
-    try {
-      const stored = sessionStorage.getItem(STATUS_KEY);
-      if (
-        stored === "In Progress" ||
-        stored === "Complete" ||
-        stored === "Incomplete"
-      ) {
-        setInterviewStatus(stored as "Incomplete" | "In Progress" | "Complete");
-      } else {
-        sessionStorage.setItem(STATUS_KEY, "Incomplete");
-        setInterviewStatus("Incomplete");
-      }
-    } catch (e) {
-      // ignore sessionStorage errors — default to Incomplete on client
-      setInterviewStatus("Incomplete");
-    }
-  }, []);
-
-  // persist query params to sessionStorage whenever they change
-  useEffect(() => {
-    try {
-      const params = {
-        agentId: agentIdParam,
-      };
-      sessionStorage.setItem(PARAMS_KEY, JSON.stringify(params));
-    } catch (e) {
-      // ignore
-    }
-  }, [agentIdParam]);
-  // log missing params after they have been assigned
-  useEffect(() => {
-    // Only log after params have been loaded at least once
-    if (!paramsLoadedRef.current && agentIdParam) {
-      paramsLoadedRef.current = true;
-    }
-
-    if (paramsLoadedRef.current) {
-      const missing: string[] = [];
-      if (!agentIdParam) missing.push("agentIdParam");
-      if (missing.length > 0) {
-        console.log("Missing params:", missing.join(", "));
-      }
-    }
-  }, [agentIdParam]);
-  function SearchParamsSetter({
-    setAgentId,
-  }: {
-    setAgentId: (v: string | null) => void;
-  }) {
-    const searchParams = useSearchParams();
-    useEffect(() => {
-      setAgentId(searchParams.get("agent_id"));
-      // setUserId(searchParams.get("var_user_id"));
-      // setJobId(searchParams.get("var_job_id"));
-      // setClientName(searchParams.get("var_client_name"));
-      // }, [searchParams, setAgentId, setUserId, setJobId, setClientName]);
-    }, [searchParams]);
-    // console.log("SearchParamsSetter rendered");
-    // console.log("Params:", {
-    //   agentId: searchParams.get("agent_id"),
-    //   userId: searchParams.get("var_user_id"),
-    //   jobId: searchParams.get("var_job_id"),
-    //   clientName: searchParams.get("var_client_name"),
-    // });
-    return null;
-  }
+  const agentId = searchParams.get("agent_id") || "";
 
   const conversation = useConversation({
     onConnect: () => {
       // console.log("Connected");
-      try {
-        sessionStorage.setItem(STATUS_KEY, "In Progress");
-      } catch (e) {
-        /* ignore */
-      }
-      setInterviewStatus("In Progress");
     },
     onDisconnect: () => {
       // console.log("Disconnected");
-      try {
-        sessionStorage.setItem(STATUS_KEY, "Complete");
-      } catch (e) {
-        /* ignore */
-      }
-      setInterviewStatus("Complete");
       router.push("/thankyou");
     },
   });
 
   const startConversation = useCallback(async () => {
     try {
+      if (!agentId) {
+        setErrorMessage("Agent ID not provided in URL parameters.");
+        return;
+      }
       setErrorMessage(null);
       await navigator.mediaDevices.getUserMedia({ audio: true });
       await conversation.startSession({
-        agentId: agentIdParam || "unknown_agent",
-        dynamicVariables: {
-          // user_id: userIdParam || "unknown_user",
-          // job_id: jobIdParam || "unknown_job",
-          // client_name: clientNameParam || "unknown_client",
-        },
+        agentId: agentId,
+        dynamicVariables: {},
         connectionType: "webrtc",
         onStatusChange: (status: any) => setAgentState(status.status),
       });
@@ -154,7 +64,7 @@ export default function Page() {
         );
       }
     }
-  }, [conversation]);
+  }, [conversation, agentId]);
   const handleCall = useCallback(() => {
     if (agentState === "disconnected" || agentState === null) {
       setAgentState("connecting");
@@ -182,9 +92,6 @@ export default function Page() {
   return (
     <Card className="flex h-screen w-screen flex-col items-center justify-center overflow-hidden p-6 rounded-none border-0">
       <div className="flex flex-col items-center gap-6">
-        <Suspense fallback={null}>
-          <SearchParamsSetter setAgentId={setAgentIdParam} />
-        </Suspense>
         <div className="relative size-32">
           <div className="bg-muted relative h-full w-full rounded-full p-1 shadow-[inset_0_2px_8px_rgba(0,0,0,0.1)] dark:shadow-[inset_0_2px_8px_rgba(0,0,0,0.5)]">
             <div className="bg-background h-full w-full overflow-hidden rounded-full shadow-[inset_0_0_12px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_0_12px_rgba(0,0,0,0.3)]">
