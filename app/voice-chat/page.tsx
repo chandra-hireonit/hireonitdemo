@@ -1,6 +1,6 @@
 "use client";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useState, useEffect, Suspense, useRef } from "react";
+
+import { useCallback, useState } from "react";
 import { useConversation } from "@elevenlabs/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Loader2Icon, PhoneIcon, PhoneOffIcon } from "lucide-react";
@@ -11,6 +11,12 @@ import { Card } from "@/components/ui/card";
 import { Orb } from "@/components/ui/orb";
 import { ShimmeringText } from "@/components/ui/shimmering-text";
 
+const DEFAULT_AGENT = {
+  agentId: "agent_7401kn79mzyneh5bf5s0gzreb9kb",
+  name: "Hire On It",
+  description: "Tap to start voice chat",
+};
+
 type AgentState =
   | "disconnected"
   | "connecting"
@@ -18,45 +24,31 @@ type AgentState =
   | "disconnecting"
   | null;
 
-const DEFAULT_AGENT = {
-  name: "Hire On It Interview Bot",
-  description: "Tap to start a voice interview with Hire On It.",
-};
-
-function VoiceChatContent() {
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+export default function Page() {
   const [agentState, setAgentState] = useState<AgentState>("disconnected");
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
-  const agentId = searchParams.get("agent_id") || "";
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const conversation = useConversation({
-    onConnect: () => {
-      // console.log("Connected");
-    },
-    onDisconnect: () => {
-      // console.log("Disconnected");
-      router.push("/thankyou");
+    onConnect: () => console.log("Connected"),
+    onDisconnect: () => console.log("Disconnected"),
+    onMessage: (message) => console.log("Message:", message),
+    onError: (error) => {
+      console.error("Error:", error);
+      setAgentState("disconnected");
     },
   });
 
   const startConversation = useCallback(async () => {
     try {
-      if (!agentId) {
-        setErrorMessage("Agent ID not provided in URL parameters.");
-        return;
-      }
       setErrorMessage(null);
       await navigator.mediaDevices.getUserMedia({ audio: true });
       await conversation.startSession({
-        agentId: agentId,
-        dynamicVariables: {},
+        agentId: DEFAULT_AGENT.agentId,
         connectionType: "webrtc",
-        onStatusChange: (status: any) => setAgentState(status.status),
+        onStatusChange: (status) => setAgentState(status.status),
       });
     } catch (error) {
-      // console.error("Error starting conversation:", error);
+      console.error("Error starting conversation:", error);
       setAgentState("disconnected");
       if (error instanceof DOMException && error.name === "NotAllowedError") {
         setErrorMessage(
@@ -64,7 +56,8 @@ function VoiceChatContent() {
         );
       }
     }
-  }, [conversation, agentId]);
+  }, [conversation]);
+
   const handleCall = useCallback(() => {
     if (agentState === "disconnected" || agentState === null) {
       setAgentState("connecting");
@@ -90,7 +83,7 @@ function VoiceChatContent() {
   }, [conversation]);
 
   return (
-    <Card className="flex h-screen w-screen flex-col items-center justify-center overflow-hidden p-6 rounded-none border-0">
+    <Card className="flex h-[400px] w-full flex-col items-center justify-center overflow-hidden p-6">
       <div className="flex flex-col items-center gap-6">
         <div className="relative size-32">
           <div className="bg-muted relative h-full w-full rounded-full p-1 shadow-[inset_0_2px_8px_rgba(0,0,0,0.1)] dark:shadow-[inset_0_2px_8px_rgba(0,0,0,0.5)]">
@@ -154,6 +147,7 @@ function VoiceChatContent() {
             )}
           </AnimatePresence>
         </div>
+
         <Button
           onClick={handleCall}
           disabled={isTransitioning}
@@ -197,13 +191,5 @@ function VoiceChatContent() {
         </Button>
       </div>
     </Card>
-  );
-}
-
-export default function Page() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <VoiceChatContent />
-    </Suspense>
   );
 }
