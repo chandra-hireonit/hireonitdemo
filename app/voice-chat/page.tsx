@@ -14,8 +14,8 @@ import { useSearchParams } from "next/navigation";
 
 const DEFAULT_AGENT = {
   agentId: "agent_01k03sadvvf8vakbhkfzws1yn5",
-  name: "Hire On It Interview Bot",
-  description: "Tap to start a voice interview with Hire On It.",
+  name: "Demo Bot",
+  description: "Tap to start a voice session with Demo Bot.",
 };
 
 type AgentState =
@@ -333,9 +333,9 @@ export default function Page() {
               animate={{ opacity: 1, y: 0 }}
               className="text-center text-sm text-muted-foreground"
             >
-              <p className="font-medium">Interview already submitted</p>
+              <p className="font-medium">Demo session already completed</p>
               <p className="text-xs mt-2 text-muted-foreground/80">
-                Our records show this interview is already submitted. If you
+                Our records show this demo session is already completed. If you
                 believe this is an error, contact support.
               </p>
             </motion.div>

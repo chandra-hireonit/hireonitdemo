@@ -67,8 +67,8 @@ export default function ThankYouPage() {
         >
           <h1 className="text-2xl font-bold">Thank You!</h1>
           <p className="text-muted-foreground text-sm">
-            Your interview has been completed successfully. We appreciate your
-            time and effort.
+            Your demo session has been completed successfully. We appreciate
+            your time and effort.
           </p>
 
           {isValidClient ? (
